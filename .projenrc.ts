@@ -5,9 +5,12 @@ const project = new awscdk.AwsCdkTypeScriptApp({
   name: 'cdk-playground-ts',
   projenrcTs: true,
 
-  // deps: [],                /* Runtime dependencies of this module. */
-  // description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */
-  // devDeps: [],             /* Build dependencies for this module. */
-  // packageName: undefined,  /* The "name" in package.json. */
+  deps: [
+    '@types/aws-lambda',
+    '@aws-lambda-powertools/logger',
+    '@aws-lambda-powertools/tracer',
+    '@aws-sdk/util-dynamodb',
+    '@aws-sdk/client-dynamodb'
+  ],
 });
 project.synth();
