@@ -10,7 +10,10 @@ const project = new awscdk.AwsCdkTypeScriptApp({
     '@aws-lambda-powertools/logger',
     '@aws-lambda-powertools/tracer',
     '@aws-sdk/util-dynamodb',
-    '@aws-sdk/client-dynamodb'
+    '@aws-sdk/client-dynamodb',
+    '@aws-sdk/client-polly',
+    '@aws-cdk/aws-apigatewayv2-alpha',
+    '@aws-cdk/aws-apigatewayv2-integrations-alpha'
   ],
 });
 project.synth();

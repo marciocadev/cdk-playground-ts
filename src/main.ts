@@ -1,6 +1,8 @@
 import { App } from 'aws-cdk-lib';
-import { RestApiLambdaDynamo } from './restapi-lambda-dynamo/stack';
+import { HttpApiLambdaPolly } from './httpapi-lambda-polly/stack';
+import { RestApiLambdaDynamoDB } from './restapi-lambda-dynamodb/stack';
 import { RestApiStepFunctionsExpressSync } from './restapi-stepfunctions-express-sync/stack';
+import { StepFunctionsStandardDynamoDB } from './stepfunctions-standard-dynamodb/stack';
 
 // for development, use account/region from cdk cli
 const devEnv = {
@@ -10,7 +12,9 @@ const devEnv = {
 
 const app = new App();
 
-new RestApiLambdaDynamo(app, 'RestApiLambdaDynamo', { env: devEnv });
+new HttpApiLambdaPolly(app, 'HttpApiLambdaPolly', { env: devEnv });
+new RestApiLambdaDynamoDB(app, 'RestApiLambdaDynamoDB', { env: devEnv });
 new RestApiStepFunctionsExpressSync(app, 'RestApiStepFunctionsExpressSync', { env: devEnv });
+new StepFunctionsStandardDynamoDB(app, 'StepFunctionsStandardDynamoDB', { env: devEnv });
 
 app.synth();
