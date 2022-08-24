@@ -5,7 +5,7 @@ import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 import { join } from "path";
 
-export class GatewayLambdaDynamo extends Stack {
+export class RestApiLambdaDynamo extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
 
@@ -21,7 +21,7 @@ export class GatewayLambdaDynamo extends Stack {
       functionName: 'gateway-lambda-dynamodb-post',
       environment: {
         'TABLE_NAME': table.tableName
-      }
+      },
     });
     
     table.grantWriteData(lambdaPost);

@@ -1,5 +1,6 @@
 import { App } from 'aws-cdk-lib';
-import { GatewayLambdaDynamo } from './gateway-lambda-dynamo/stack';
+import { RestApiLambdaDynamo } from './restapi-lambda-dynamo/stack';
+import { RestApiStepFunctionsExpressSync } from './restapi-stepfunctions-express-sync/stack';
 
 // for development, use account/region from cdk cli
 const devEnv = {
@@ -9,6 +10,7 @@ const devEnv = {
 
 const app = new App();
 
-new GatewayLambdaDynamo(app, 'gateway-lambda-dynamo', { env: devEnv });
+new RestApiLambdaDynamo(app, 'RestApiLambdaDynamo', { env: devEnv });
+new RestApiStepFunctionsExpressSync(app, 'RestApiStepFunctionsExpressSync', { env: devEnv });
 
 app.synth();
