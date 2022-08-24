@@ -72,6 +72,19 @@ export class RestApiStepFunctionsExpressSync extends Stack {
     });
     const transformMapLstChain = Chain.start(transformMapLstStep);
     mapMapLst.iterator(transformMapLstChain);
+    const updateItemMapLst = new DynamoUpdateItem(this, 'DynamoUpdateItemMapLst', {
+      key: { pk: DynamoAttributeValue.fromString(JsonPath.stringAt('$.pk')) },
+      updateExpression: 'set #mapLst=:mapLst',
+      expressionAttributeNames: {
+        '#mapLst': 'mapLst',
+      },
+      expressionAttributeValues: {
+        ':mapLst': DynamoAttributeValue.listFromJsonPath(JsonPath.stringAt('$.mapLstProcess')),
+      },
+      table: table,
+      resultPath: JsonPath.DISCARD,
+    });
+    mapMapLst.next(updateItemMapLst);
 
     const parallel = new Parallel(this, 'Parallel', {
       resultPath: JsonPath.DISCARD,
