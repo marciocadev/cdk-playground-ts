@@ -1,10 +1,11 @@
-import { RemovalPolicy, Stack, StackProps } from "aws-cdk-lib";
-import { AttributeType, Table } from "aws-cdk-lib/aws-dynamodb";
-import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
-import { Chain, JsonPath, Map, Parallel, Pass, StateMachine, StateMachineType, TaskInput } from "aws-cdk-lib/aws-stepfunctions";
-import { DynamoAttributeValue, DynamoGetItem, DynamoPutItem, DynamoUpdateItem, LambdaInvoke } from "aws-cdk-lib/aws-stepfunctions-tasks";
-import { Construct } from "constructs";
-import { join } from "path";
+import { join } from 'path';
+import { RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
+import { AttributeType, Table } from 'aws-cdk-lib/aws-dynamodb';
+import { Tracing } from 'aws-cdk-lib/aws-lambda';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { Chain, JsonPath, Map, Parallel, Pass, StateMachine, StateMachineType, TaskInput } from 'aws-cdk-lib/aws-stepfunctions';
+import { DynamoAttributeValue, DynamoGetItem, DynamoPutItem, DynamoUpdateItem, LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
+import { Construct } from 'constructs';
 
 export class StepFunctionsStandardDynamoDB extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
@@ -23,6 +24,7 @@ export class StepFunctionsStandardDynamoDB extends Stack {
       functionName: 'TransformNumLst',
       entry: join(__dirname, 'lambda-fns/transform-num-lst/index.ts'),
       handler: 'handler',
+      tracing: Tracing.ACTIVE,
     });
     const transformNumLstStep = new LambdaInvoke(this, 'TransformNumLstStep', {
       payload: TaskInput.fromObject({
@@ -56,6 +58,7 @@ export class StepFunctionsStandardDynamoDB extends Stack {
       functionName: 'TransformMapLst',
       entry: join(__dirname, 'lambda-fns/transform-map-lst/index.ts'),
       handler: 'handler',
+      tracing: Tracing.ACTIVE,
     });
     const transformMapLstStep = new LambdaInvoke(this, 'TransformMapLstStep', {
       payload: TaskInput.fromObject({ input: JsonPath.stringAt('$') }),
@@ -86,7 +89,7 @@ export class StepFunctionsStandardDynamoDB extends Stack {
 
     const parallel = new Parallel(this, 'Parallel', {
       resultPath: JsonPath.DISCARD,
-    })
+    });
     parallel.branch(mapMapLst).branch(mapNumLst);
 
     const pass = new Pass(this, 'Pass', {
@@ -110,8 +113,8 @@ export class StepFunctionsStandardDynamoDB extends Stack {
         str: DynamoAttributeValue.fromString(JsonPath.stringAt('$.str')),
         num: DynamoAttributeValue.numberFromString(JsonPath.stringAt('States.JsonToString($.num)')),
         map: DynamoAttributeValue.fromMap({
-          'strMap': DynamoAttributeValue.fromString(JsonPath.stringAt('$.map.strMap')),
-          'numMap': DynamoAttributeValue.numberFromString(JsonPath.stringAt('States.JsonToString($.map.numMap)')),
+          strMap: DynamoAttributeValue.fromString(JsonPath.stringAt('$.map.strMap')),
+          numMap: DynamoAttributeValue.numberFromString(JsonPath.stringAt('States.JsonToString($.map.numMap)')),
         }),
         strLst: DynamoAttributeValue.listFromJsonPath(JsonPath.stringAt('$.strLst')),
         strSet: DynamoAttributeValue.fromStringSet(JsonPath.listAt('$.strSet')),
@@ -137,6 +140,7 @@ export class StepFunctionsStandardDynamoDB extends Stack {
       stateMachineName: 'restapi-stepfunctions-standard',
       definition: chain,
       stateMachineType: StateMachineType.STANDARD,
+      tracingEnabled: true,
     });
   }
 }

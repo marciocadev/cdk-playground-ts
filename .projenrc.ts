@@ -13,7 +13,7 @@ const project = new awscdk.AwsCdkTypeScriptApp({
     '@aws-sdk/client-dynamodb',
     '@aws-sdk/client-polly',
     '@aws-cdk/aws-apigatewayv2-alpha',
-    '@aws-cdk/aws-apigatewayv2-integrations-alpha'
+    '@aws-cdk/aws-apigatewayv2-integrations-alpha',
   ],
 });
 project.synth();

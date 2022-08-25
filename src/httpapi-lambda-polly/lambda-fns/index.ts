@@ -1,8 +1,15 @@
 import { Stream } from 'stream';
+import { Logger } from '@aws-lambda-powertools/logger';
+import { Tracer } from '@aws-lambda-powertools/tracer';
 import { Engine, OutputFormat, PollyClient, SynthesizeSpeechCommand, SynthesizeSpeechInput, TextType } from '@aws-sdk/client-polly';
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 
-const pollyClient = new PollyClient({ region: process.env.AWS_REGION });
+const serviceName = 'httpapi-lambda-polly';
+const logger = new Logger({ serviceName: serviceName, logLevel: 'INFO' });
+const tracer = new Tracer({ serviceName: serviceName });
+tracer.provider.setLogger(logger);
+
+const pollyClient = tracer.captureAWSv3Client(new PollyClient({ region: process.env.AWS_REGION }));
 
 export const handler = async(event:APIGatewayProxyEventV2) => {
 
@@ -26,9 +33,11 @@ export const handler = async(event:APIGatewayProxyEventV2) => {
   try {
     synth = await pollyClient.send(command);
   } catch (err:any) {
+    logger.error('Erro', err);
     throw err;
   }
 
+  logger.info('synthesize speech success');
   const buffer = await stream2buffer(synth.AudioStream);
 
   const result:APIGatewayProxyResultV2 = {

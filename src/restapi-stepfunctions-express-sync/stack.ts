@@ -1,9 +1,9 @@
-import { Stack, StackProps } from "aws-cdk-lib";
-import { AwsIntegration, IntegrationOptions, JsonSchema, JsonSchemaType, JsonSchemaVersion, MethodLoggingLevel, MethodOptions, Model, RequestValidator, RestApi } from "aws-cdk-lib/aws-apigateway";
-import { Effect, Policy, PolicyStatement, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
-import { Chain, JsonPath, Pass, StateMachine, StateMachineType } from "aws-cdk-lib/aws-stepfunctions";
-import { CallAwsService } from "aws-cdk-lib/aws-stepfunctions-tasks";
-import { Construct } from "constructs";
+import { Stack, StackProps } from 'aws-cdk-lib';
+import { AwsIntegration, IntegrationOptions, JsonSchema, JsonSchemaType, JsonSchemaVersion, MethodLoggingLevel, MethodOptions, Model, RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
+import { Effect, Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { Chain, JsonPath, Pass, StateMachine, StateMachineType } from 'aws-cdk-lib/aws-stepfunctions';
+import { CallAwsService } from 'aws-cdk-lib/aws-stepfunctions-tasks';
+import { Construct } from 'constructs';
 
 export class RestApiStepFunctionsExpressSync extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
@@ -37,7 +37,7 @@ export class RestApiStepFunctionsExpressSync extends Stack {
         'SourceLanguage.$': '$.result.SourceLanguageCode',
         'TranslatedText.$': '$.result.TranslatedText',
         'TargetLanguage.$': '$.result.TargetLanguageCode',
-      }
+      },
     });
     const chain = Chain.start(detectLanguage)
       .next(translateText)
@@ -56,16 +56,16 @@ export class RestApiStepFunctionsExpressSync extends Stack {
           new PolicyStatement({
             actions: ['states:StartSyncExecution'],
             effect: Effect.ALLOW,
-            resources: [stateMachine.stateMachineArn]
-          })
-        ]
-      })
+            resources: [stateMachine.stateMachineArn],
+          }),
+        ],
+      }),
     );
     const rest = new RestApi(this, 'RestApi', {
       restApiName: 'restapi-stepfunctions-express-sync',
       deployOptions: {
-        loggingLevel: MethodLoggingLevel.INFO
-      }
+        loggingLevel: MethodLoggingLevel.INFO,
+      },
     });
     const postSchema: JsonSchema = {
       title: 'PostSchema',
@@ -73,13 +73,13 @@ export class RestApiStepFunctionsExpressSync extends Stack {
       schema: JsonSchemaVersion.DRAFT4,
       required: ['text'],
       properties: {
-        'text': { type: JsonSchemaType.STRING }
-      }
+        text: { type: JsonSchemaType.STRING },
+      },
     };
     const postModel = new Model(this, 'PostModel', {
       restApi: rest,
       contentType: 'application/json',
-      schema: postSchema
+      schema: postSchema,
     });
     const postValidator = new RequestValidator(this, 'RequestValidator', {
       requestValidatorName: 'validator',
@@ -90,7 +90,7 @@ export class RestApiStepFunctionsExpressSync extends Stack {
     const methodOpt: MethodOptions = {
       methodResponses: [{ statusCode: '200' }],
       requestModels: { 'application/json': postModel },
-      requestValidator: postValidator
+      requestValidator: postValidator,
     };
     const postIntegrationOpt: IntegrationOptions = {
       credentialsRole: gatewayRole,
@@ -98,22 +98,22 @@ export class RestApiStepFunctionsExpressSync extends Stack {
         'application/json': `{
           "input": "$util.escapeJavaScript($input.body)",
           "stateMachineArn": "${stateMachine.stateMachineArn}"
-        }`
+        }`,
       },
       integrationResponses: [
         {
           statusCode: '200',
           responseTemplates: {
-            'application/json': "$input.path('$.output')"
-          }
-        }
-      ]
+            'application/json': "$input.path('$.output')",
+          },
+        },
+      ],
     };
     const postIntegration = new AwsIntegration({
       service: 'states',
       action: 'StartSyncExecution',
       integrationHttpMethod: 'POST',
-      options: postIntegrationOpt
+      options: postIntegrationOpt,
     });
     const data = rest.root.addResource('translate');
     data.addMethod('POST', postIntegration, methodOpt);
