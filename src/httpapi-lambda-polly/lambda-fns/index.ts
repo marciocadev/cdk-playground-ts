@@ -20,12 +20,15 @@ export const handler = async(event:APIGatewayProxyEventV2) => {
   let { voice } = event.pathParameters;
   let text = event.body;
 
+  logger.info('Texto', text);
+
   const input:SynthesizeSpeechInput = {
     Text: text,
     VoiceId: voice,
     Engine: Engine.NEURAL,
     TextType: TextType.TEXT,
-    OutputFormat: OutputFormat.MP3,
+    OutputFormat: OutputFormat.MP3, //.JSON,
+    // SpeechMarkTypes: ["sentence"]
   };
   const command = new SynthesizeSpeechCommand(input);
 

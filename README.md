@@ -50,8 +50,7 @@ Não consultes dicionários. Casmurro não está aqui no sentido que eles lhe d�
 
 ```json
 {
-  "id": "123",
-  "nome": "Marcio"
+  "tool": "AWS-CDK"
 }
 ```
 <hr />

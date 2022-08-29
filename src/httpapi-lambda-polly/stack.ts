@@ -5,6 +5,7 @@ import { Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Architecture, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { Trigger } from 'aws-cdk-lib/triggers';
 import { Construct } from 'constructs';
 
 export class HttpApiLambdaPolly extends Stack {
@@ -34,6 +35,19 @@ export class HttpApiLambdaPolly extends Stack {
       path: '/speech/{voice}',
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration('Integration', lambda),
+    });
+
+    const lambdaTrigger = new NodejsFunction(this, 'TriggerLambda', {
+      functionName: 'playing-with-polly-trigger',
+      entry: join(__dirname, 'lambda-fns/trigger.ts'),
+      handler: 'handler',
+      environment: {
+        URL: join(rest.url as string, '/speech/Camila'),
+      },
+    });
+    new Trigger(this, 'Trigger', {
+      handler: lambdaTrigger,
+      executeAfter: [rest, lambda],
     });
   }
 }
