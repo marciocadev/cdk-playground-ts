@@ -4,7 +4,7 @@ import { DynamoDBClient, ScanCommand, ScanCommandInput } from '@aws-sdk/client-d
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 import { Context, APIGatewayProxyResult } from 'aws-lambda';
 
-const serviceName = 'restapi-lambda-dynamodb';
+const serviceName = 'crud-with-lambda';
 const logger = new Logger({ serviceName: serviceName, logLevel: 'INFO' });
 const tracer = new Tracer({ serviceName: serviceName });
 tracer.provider.setLogger(logger);

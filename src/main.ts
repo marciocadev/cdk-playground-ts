@@ -1,4 +1,5 @@
 import { App } from 'aws-cdk-lib';
+import { CrudWithDynamoDB } from './crud-with-dynamodb/stack';
 import { CrudWithLambda } from './crud-with-lambda/stack';
 
 import { HttpApiLambdaPolly } from './httpapi-lambda-polly/stack';
@@ -16,6 +17,10 @@ const app = new App();
 new CrudWithLambda(app, 'CrudWithLambda', {
   env: devEnv,
   tags: { createdBy: 'cdk', stackName: 'CrudWithLambda' },
+});
+new CrudWithDynamoDB(app, 'CrudWithDynamoDB', {
+  env: devEnv,
+  tags: { createdBy: 'cdk', stackName: 'CrudWithDynamoDB' },
 });
 
 new HttpApiLambdaPolly(app, 'HttpApiLambdaPolly', {
