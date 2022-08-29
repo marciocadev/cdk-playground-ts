@@ -1,5 +1,5 @@
 import { Stack, StackProps } from 'aws-cdk-lib';
-import { AwsIntegration, IntegrationOptions, JsonSchema, JsonSchemaType, JsonSchemaVersion, MethodLoggingLevel, MethodOptions, Model, RequestValidator, RestApi } from 'aws-cdk-lib/aws-apigateway';
+import { JsonSchema, JsonSchemaType, JsonSchemaVersion, MethodLoggingLevel, MethodOptions, Model, RequestValidator, RestApi, StepFunctionsIntegration } from 'aws-cdk-lib/aws-apigateway';
 import { Effect, Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Chain, JsonPath, Pass, StateMachine, StateMachineType } from 'aws-cdk-lib/aws-stepfunctions';
 import { CallAwsService } from 'aws-cdk-lib/aws-stepfunctions-tasks';
@@ -14,7 +14,7 @@ export class RestApiStepFunctionsExpressSync extends Stack {
       action: 'detectDominantLanguage',
       iamResources: ['*'],
       parameters: {
-        Text: JsonPath.stringAt('$.text'),
+        Text: JsonPath.stringAt('$.body.text'),
       },
       resultPath: '$.result',
       outputPath: '$',
@@ -24,7 +24,7 @@ export class RestApiStepFunctionsExpressSync extends Stack {
       action: 'translateText',
       iamResources: ['*'],
       parameters: {
-        Text: JsonPath.stringAt('$.text'),
+        Text: JsonPath.stringAt('$.body.text'),
         SourceLanguageCode: JsonPath.stringAt('$.result.Languages[0].LanguageCode'),
         TargetLanguageCode: 'pt',
       },
@@ -33,7 +33,7 @@ export class RestApiStepFunctionsExpressSync extends Stack {
     });
     const result = new Pass(this, 'ResultRequest', {
       parameters: {
-        'SourceText.$': '$.text',
+        'SourceText.$': '$.body.text',
         'SourceLanguage.$': '$.result.SourceLanguageCode',
         'TranslatedText.$': '$.result.TranslatedText',
         'TargetLanguage.$': '$.result.TargetLanguageCode',
@@ -92,30 +92,7 @@ export class RestApiStepFunctionsExpressSync extends Stack {
       requestModels: { 'application/json': postModel },
       requestValidator: postValidator,
     };
-    const postIntegrationOpt: IntegrationOptions = {
-      credentialsRole: gatewayRole,
-      requestTemplates: {
-        'application/json': `{
-          "input": "$util.escapeJavaScript($input.body)",
-          "stateMachineArn": "${stateMachine.stateMachineArn}"
-        }`,
-      },
-      integrationResponses: [
-        {
-          statusCode: '200',
-          responseTemplates: {
-            'application/json': "$input.path('$.output')",
-          },
-        },
-      ],
-    };
-    const postIntegration = new AwsIntegration({
-      service: 'states',
-      action: 'StartSyncExecution',
-      integrationHttpMethod: 'POST',
-      options: postIntegrationOpt,
-    });
     const data = rest.root.addResource('translate');
-    data.addMethod('POST', postIntegration, methodOpt);
+    data.addMethod('POST', StepFunctionsIntegration.startExecution(stateMachine), methodOpt);
   }
 }

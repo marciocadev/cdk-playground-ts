@@ -42,15 +42,17 @@ Não consultes dicionários. Casmurro não está aqui no sentido que eles lhe d�
 
 <hr />
 
-## restapi-lambda-dynamo
+## crud with lambda
 
-* cdk deploy RestApiLambdaDynamo
+* cdk deploy CrudWithLambda
 
 ![gtw-lmb-dynDB](/imagens/gateway-lambda-dynamodb.jpg)
 
 ```json
 {
-  "tool": "AWS-CDK"
+  "account": 102456,
+  "type": "C",
+  "value": 10.56
 }
 ```
 <hr />
