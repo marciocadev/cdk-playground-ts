@@ -108,6 +108,18 @@
       "type": "runtime"
     },
     {
+      "name": "@aws-sdk/client-s3",
+      "type": "runtime"
+    },
+    {
+      "name": "@aws-sdk/client-secrets-manager",
+      "type": "runtime"
+    },
+    {
+      "name": "@aws-sdk/s3-request-presigner",
+      "type": "runtime"
+    },
+    {
       "name": "@aws-sdk/util-dynamodb",
       "type": "runtime"
     },

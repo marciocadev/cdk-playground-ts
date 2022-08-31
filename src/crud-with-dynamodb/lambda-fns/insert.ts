@@ -12,6 +12,6 @@ const pk = process.env.PARTITION_KEY as string;
 
 export const handler = async(event: DynamoDBStreamEvent, context: Context) => {
   logger.addContext(context);
-  
-  logger.info('event', {object: event});
-}
+
+  logger.info('event', { object: event });
+};

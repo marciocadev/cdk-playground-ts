@@ -93,3 +93,21 @@ Não consultes dicionários. Casmurro não está aqui no sentido que eles lhe d�
   "convertToBinary": "Converte para binario"
 }
 ```
+
+## secret-manager-caching
+
+* cdk deploy SecretManagerCaching --parameters Secret1=56 --parameters Secret2=texto --parameters Secret3=campos1,campos2
+
+## bucket-url
+
+* cdk deploy BucketURL
+
+```json
+{
+  "fileName": "teste.json",
+  "content": {
+    "numero": 123,
+    "texto": "alguma coisa"
+  }
+}
+```
