@@ -1,6 +1,6 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { Tracer } from '@aws-lambda-powertools/tracer';
-import { DynamoDBClient, ScanCommand, ScanCommandInput } from '@aws-sdk/client-dynamodb';
+import { AttributeValue, DynamoDBClient, ScanCommand, ScanCommandInput } from '@aws-sdk/client-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 import { Context, APIGatewayProxyResult } from 'aws-lambda';
 
@@ -20,14 +20,14 @@ export const handler = async(context: Context): Promise<APIGatewayProxyResult> =
   };
 
   try {
-    const data = await dynamo.send(new ScanCommand(input));
-    const itemLst = data.Items?.map((item) => {
+    const { Items } = await dynamo.send(new ScanCommand(input));
+    const items = Items?.map((item) => {
       return unmarshall(item);
     });
 
     return {
       statusCode: 200,
-      body: JSON.stringify(itemLst, undefined, 2),
+      body: JSON.stringify(items, undefined, 2),
     };
   } catch (err) {
     logger.error('erro no dynamodb', err as Error);

@@ -22,8 +22,14 @@ export const handler = async(event: APIGatewayEvent, context: Context): Promise<
   const { body } = event;
   logger.info('body', body as string);
 
-  const item = JSON.parse(body as string);
-  item[sk] = uuidv4();
+  let item = JSON.parse(body as string);
+  let pk = 'ACCOUNT#' + item['account'];
+  delete item['account'];
+  item = {
+    pk: pk,
+    sk: 'TRANSACTION#' + uuidv4(),
+    ...item
+  }
 
   const input:PutItemCommandInput = {
     TableName: process.env.TABLE_NAME,

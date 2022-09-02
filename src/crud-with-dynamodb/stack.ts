@@ -17,8 +17,8 @@ export class CrudWithDynamoDB extends Stack {
     });
 
     const table = new Table(this, 'Table', {
-      partitionKey: { name: 'account', type: AttributeType.NUMBER },
-      sortKey: { name: 'transactId', type: AttributeType.STRING },
+      partitionKey: { name: 'pk', type: AttributeType.STRING },
+      sortKey: { name: 'sk', type: AttributeType.STRING },
       tableName: 'crud-with-dynamodb',
       removalPolicy: RemovalPolicy.DESTROY,
       stream: StreamViewType.NEW_IMAGE,
@@ -28,10 +28,11 @@ export class CrudWithDynamoDB extends Stack {
     const nodejsFunctionProps: NodejsFunctionProps = {
       handler: 'handler',
       tracing: Tracing.ACTIVE,
+      retryAttempts: 0,
       environment: {
         TABLE_NAME: table.tableName,
-        SORT_KEY: 'transactId',
-        PARTITION_KEY: 'account',
+        SORT_KEY: 'sk',
+        PARTITION_KEY: 'pk',
       },
     };
     const lambdaInsert = new NodejsFunction(this, 'LambdaInsert', {
@@ -41,7 +42,9 @@ export class CrudWithDynamoDB extends Stack {
     });
     lambdaInsert.addEventSource(new DynamoEventSource(table, {
       startingPosition: StartingPosition.LATEST,
+      
     }));
+    table.grantWriteData(lambdaInsert);
 
     const integrationOpt: IntegrationOptions = {
       credentialsRole: gtwTableRole,
@@ -50,10 +53,9 @@ export class CrudWithDynamoDB extends Stack {
         {
           "TableName":"${table.tableName}",
           "Item": {
-            "account":{"N":"$input.path('account')"},
-            "transactId":{"S":"$context.requestId"},
-            "type":{"S":"$input.path('type')"},
-            "value":{"N":"$input.path('value')"}
+            "pk":{"S":"ACCOUNT#$input.path('account')"},
+            "sk":{"S":"TRANSACTION#$context.requestId"},
+            "amount":{"N":"$input.path('amount')"}
           }
         }`,
       },
@@ -95,11 +97,10 @@ export class CrudWithDynamoDB extends Stack {
       title: 'crud-with-dynamodb-post',
       type: JsonSchemaType.OBJECT,
       schema: JsonSchemaVersion.DRAFT4,
-      required: ['account', 'type', 'value'],
+      required: ['account', 'amount'],
       properties: {
         account: { type: JsonSchemaType.NUMBER },
-        type: { type: JsonSchemaType.STRING },
-        value: { type: JsonSchemaType.NUMBER },
+        amount: { type: JsonSchemaType.NUMBER },
       },
     };
     const modelPost = new Model(this, 'Model', {

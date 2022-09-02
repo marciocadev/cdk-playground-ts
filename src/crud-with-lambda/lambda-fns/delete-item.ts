@@ -1,7 +1,7 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { Tracer } from '@aws-lambda-powertools/tracer';
-import { AttributeValue, DynamoDBClient, QueryCommand, QueryCommandInput } from '@aws-sdk/client-dynamodb';
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { DynamoDBClient, DeleteItemCommand, DeleteItemCommandInput } from '@aws-sdk/client-dynamodb';
+import { marshall } from '@aws-sdk/util-dynamodb';
 import { Context, APIGatewayProxyResult, APIGatewayEvent } from 'aws-lambda';
 
 const serviceName = 'crud-with-lambda';
@@ -25,29 +25,20 @@ export const handler = async(event: APIGatewayEvent, context: Context): Promise<
   const account: string = 'ACCOUNT#' + parseInt(pathParameters?.account as string);
   const transaction: string = 'TRANSACTION#' + queryStringParameters?.transaction as string;
 
-  const key = { [':' + pk]: account, [':' + sk]: transaction };
+  const key = { [pk]: account, [sk]: transaction };
   logger.info('key', { object: key });
   const marshallKey = marshall(key);
   logger.info('marshallKey', { object: marshallKey });
 
-  const input: QueryCommandInput = {
+  const input: DeleteItemCommandInput = {
     TableName: process.env.TABLE_NAME,
-    KeyConditionExpression: 'pk = :pk and sk = :sk',
-    ExpressionAttributeValues: marshallKey,
-    // ProjectionExpression: 'pk, sk, amount'
+    Key: marshallKey,
   };
-  logger.info('input', { object: input });
   try {
-    const { Items } = await dynamo.send(new QueryCommand(input));
-    const items = Items?.map((item) => {
-      return unmarshall(item);
-    });
-
-    logger.info('item', { object: items });
-
+    await dynamo.send(new DeleteItemCommand(input));
     return {
       statusCode: 200,
-      body: JSON.stringify(items, undefined, 2),
+      body: 'item deleted',
     };
   } catch (err) {
     logger.error('erro no dynamodb', err as Error);

@@ -1,6 +1,6 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { Tracer } from '@aws-lambda-powertools/tracer';
-import { AttributeValue, DynamoDBClient, QueryCommand, QueryCommandInput } from '@aws-sdk/client-dynamodb';
+import { AttributeValue, DynamoDBClient, GetItemCommand, GetItemCommandInput } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { Context, APIGatewayProxyResult, APIGatewayEvent } from 'aws-lambda';
 
@@ -25,29 +25,24 @@ export const handler = async(event: APIGatewayEvent, context: Context): Promise<
   const account: string = 'ACCOUNT#' + parseInt(pathParameters?.account as string);
   const transaction: string = 'TRANSACTION#' + queryStringParameters?.transaction as string;
 
-  const key = { [':' + pk]: account, [':' + sk]: transaction };
+  const key = { [pk]: account, [sk]: transaction };
   logger.info('key', { object: key });
   const marshallKey = marshall(key);
   logger.info('marshallKey', { object: marshallKey });
 
-  const input: QueryCommandInput = {
+  const input: GetItemCommandInput = {
     TableName: process.env.TABLE_NAME,
-    KeyConditionExpression: 'pk = :pk and sk = :sk',
-    ExpressionAttributeValues: marshallKey,
-    // ProjectionExpression: 'pk, sk, amount'
+    Key: marshallKey,
   };
-  logger.info('input', { object: input });
   try {
-    const { Items } = await dynamo.send(new QueryCommand(input));
-    const items = Items?.map((item) => {
-      return unmarshall(item);
-    });
+    const { Item } = await dynamo.send(new GetItemCommand(input));
+    const item = unmarshall(Item as Record<string, AttributeValue>)
 
-    logger.info('item', { object: items });
+    logger.info('item', { object: item });
 
     return {
       statusCode: 200,
-      body: JSON.stringify(items, undefined, 2),
+      body: JSON.stringify(item, undefined, 2),
     };
   } catch (err) {
     logger.error('erro no dynamodb', err as Error);

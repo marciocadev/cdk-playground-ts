@@ -5,14 +5,15 @@ import { AttributeType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 export class CrudWithLambda extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
 
     const table = new Table(this, 'Table', {
-      partitionKey: { name: 'account', type: AttributeType.NUMBER },
-      sortKey: { name: 'transactId', type: AttributeType.STRING },
+      partitionKey: { name: 'pk', type: AttributeType.STRING },
+      sortKey: { name: 'sk', type: AttributeType.STRING },
       tableName: 'crud-with-lambda',
       removalPolicy: RemovalPolicy.DESTROY,
     });
@@ -22,14 +23,14 @@ export class CrudWithLambda extends Stack {
       tracing: Tracing.ACTIVE,
       environment: {
         TABLE_NAME: table.tableName,
-        SORT_KEY: 'transactId',
-        PARTITION_KEY: 'account',
+        SORT_KEY: 'sk',
+        PARTITION_KEY: 'pk',
       },
     };
 
-    const lambdaInsert = new NodejsFunction(this, 'LambdaInsert', {
-      entry: join(__dirname, 'lambda-fns/insert.ts'),
-      functionName: 'crud-with-lambda-insert',
+    const lambdaPutItem = new NodejsFunction(this, 'LambdaPutItem', {
+      entry: join(__dirname, 'lambda-fns/put-item.ts'),
+      functionName: 'crud-with-lambda-put-item',
       ...nodejsFunctionProps,
     });
     const lambdaScan = new NodejsFunction(this, 'LambdaScan', {
@@ -37,27 +38,62 @@ export class CrudWithLambda extends Stack {
       functionName: 'crud-with-lambda-scan',
       ...nodejsFunctionProps,
     });
-    const lambdaQuery = new NodejsFunction(this, 'LambdaQuery', {
+    const lambdaGetItem = new NodejsFunction(this, 'LambdaGetItem', {
+      entry: join(__dirname, 'lambda-fns/get-item.ts'),
+      functionName: 'crud-lambda-dynamodb-get-item',
+      ...nodejsFunctionProps,
+    });
+    const lambdaDeleteItem = new NodejsFunction(this, 'LambdaDeleteItem', {
+      entry: join(__dirname, 'lambda-fns/delete-item.ts'),
+      functionName: 'crud-lambda-dynamodb-delete-item',
+      ...nodejsFunctionProps,
+    });
+    const lambdaUpdateItem = new NodejsFunction(this, 'LambdaUpdateItem', {
+      entry: join(__dirname, 'lambda-fns/update-item.ts'),
+      functionName: 'crud-lambda-dynamodb-update-item',
+      ...nodejsFunctionProps,
+    });    
+    const lambdaQuery = new NodejsFunction(this, 'lambdaQuery', {
       entry: join(__dirname, 'lambda-fns/query.ts'),
       functionName: 'crud-lambda-dynamodb-query',
       ...nodejsFunctionProps,
     });
-    const lambdaDelete = new NodejsFunction(this, 'LambdaDelete', {
-      entry: join(__dirname, 'lambda-fns/delete.ts'),
-      functionName: 'crud-lambda-dynamodb-delete',
+
+    table.grantWriteData(lambdaPutItem);
+    table.grantReadData(lambdaScan);
+    table.grantReadData(lambdaGetItem);
+    table.grantWriteData(lambdaDeleteItem);
+    table.grantWriteData(lambdaUpdateItem);
+    table.grantReadData(lambdaQuery);
+
+    const dynamodbNoAmountStatement = new PolicyStatement({
+      effect: Effect.ALLOW,
+      resources: [table.tableArn, table.tableArn + '/index/*'],
+      actions: ['dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:BatchGetItem'],
+    });
+    dynamodbNoAmountStatement.addConditions({
+      StringEqualsIfExists: {
+        'dynamodb:Select': 'SPECIFIC_ATTRIBUTES',
+      },
+      'ForAllValues:StringLike': {
+        'dynamodb:Attributes': ['pk', 'sk', 'description']
+      }
+    })
+
+    const lambdaQueryNoAmount = new NodejsFunction(this, 'lambdaQueryNoAmount', {
+      entry: join(__dirname, 'lambda-fns/query-no-amount.ts'),
+      functionName: 'crud-lambda-dynamodb-query-no-amount',
       ...nodejsFunctionProps,
     });
-    const lambdaPatch = new NodejsFunction(this, 'LambdaPatch', {
-      entry: join(__dirname, 'lambda-fns/patch.ts'),
-      functionName: 'crud-lambda-dynamodb-patch',
+    lambdaQuery.addToRolePolicy(dynamodbNoAmountStatement);
+    const lambdaGetItemNoAmount = new NodejsFunction(this, 'LambdaGetItemNoAmount', {
+      entry: join(__dirname, 'lambda-fns/get-item-no-amount.ts'),
+      functionName: 'crud-lambda-dynamodb-get-item-no-amount',
       ...nodejsFunctionProps,
     });
 
-    table.grantWriteData(lambdaInsert);
-    table.grantReadData(lambdaScan);
-    table.grantReadData(lambdaQuery);
-    table.grantWriteData(lambdaDelete);
-    table.grantWriteData(lambdaPatch);
+    lambdaQueryNoAmount.addToRolePolicy(dynamodbNoAmountStatement);
+    lambdaGetItemNoAmount.addToRolePolicy(dynamodbNoAmountStatement);
 
     const rest = new RestApi(this, 'RestApi', {
       restApiName: 'crud-with-lambda',
@@ -68,11 +104,10 @@ export class CrudWithLambda extends Stack {
       title: 'crud-with-lambda-post',
       type: JsonSchemaType.OBJECT,
       schema: JsonSchemaVersion.DRAFT4,
-      required: ['account', 'type', 'value'],
+      required: ['account', 'amount'],
       properties: {
         account: { type: JsonSchemaType.NUMBER },
-        type: { type: JsonSchemaType.STRING },
-        value: { type: JsonSchemaType.NUMBER },
+        amount: { type: JsonSchemaType.NUMBER },
       },
     };
     const modelPost = new Model(this, 'Model', {
@@ -97,18 +132,39 @@ export class CrudWithLambda extends Stack {
     });
     const methodId: MethodOptions = {
       requestParameters: {
-        'method.request.querystring.transactId': true,
+        'method.request.querystring.transaction': true,
       },
       requestValidator: validateId,
     };
 
-    const items = rest.root.addResource('items');
-    items.addMethod('POST', new LambdaIntegration(lambdaInsert), methodPost);
-    items.addMethod('GET', new LambdaIntegration(lambdaScan));
+    const deleteItem = rest.root.addResource('delete-item');
+    const idDeleteItem = deleteItem.addResource('{account}');
+    idDeleteItem.addMethod('DELETE', new LambdaIntegration(lambdaDeleteItem));
 
-    const idItem = items.addResource('{account}');
-    idItem.addMethod('GET', new LambdaIntegration(lambdaQuery), methodId);
-    idItem.addMethod('DELETE', new LambdaIntegration(lambdaDelete));
-    idItem.addMethod('PATCH', new LambdaIntegration(lambdaPatch));
+    const getItem = rest.root.addResource('get-item');
+    const idGetItem = getItem.addResource('{account}');
+    idGetItem.addMethod('GET', new LambdaIntegration(lambdaGetItem), methodId);
+
+    const getItemNoAmount = rest.root.addResource('get-item-no-amount');
+    const idGetItemNoAmount = getItemNoAmount.addResource('{account}');
+    idGetItemNoAmount.addMethod('GET', new LambdaIntegration(lambdaGetItemNoAmount), methodId);
+
+    const putItem = rest.root.addResource('put-item');
+    putItem.addMethod('POST', new LambdaIntegration(lambdaPutItem), methodPost);
+
+    const query = rest.root.addResource('query');
+    const idQuery = query.addResource('{account}');
+    idQuery.addMethod('GET', new LambdaIntegration(lambdaQuery), methodId);
+
+    const queryNoAmount = rest.root.addResource('query-no-amount');
+    const idQueryNoAmount = queryNoAmount.addResource('{account}');
+    idQueryNoAmount.addMethod('GET', new LambdaIntegration(lambdaQueryNoAmount), methodId);    
+
+    const scan = rest.root.addResource('scan');
+    scan.addMethod('GET', new LambdaIntegration(lambdaScan));
+
+    const updateItem = rest.root.addResource('update-item');
+    const idUpdateItem = updateItem.addResource('{account}');
+    idUpdateItem.addMethod('PATCH', new LambdaIntegration(lambdaUpdateItem));
   }
 }

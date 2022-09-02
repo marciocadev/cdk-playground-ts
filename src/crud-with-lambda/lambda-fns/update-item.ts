@@ -25,8 +25,8 @@ export const handler = async(event: APIGatewayEvent, context: Context): Promise<
   const { body } = event;
   logger.info('body', body as string);
 
-  const account: number = parseInt(pathParameters?.account as string);
-  const transactId: string = queryStringParameters?.transactId as string;
+  const account: string = 'ACCOUNT#' + parseInt(pathParameters?.account as string);
+  const transaction: string = 'TRANSACTION#' + queryStringParameters?.transaction as string;
 
   const item = JSON.parse(body as string);
   const itemKey = Object.keys(item);
@@ -34,7 +34,7 @@ export const handler = async(event: APIGatewayEvent, context: Context): Promise<
     return { statusCode: 400, body: 'invalid request, no arguments provided' };
   }
 
-  const key = { [pk]: account, [sk]: transactId };
+  const key = { [pk]: account, [sk]: transaction };
   logger.info('key', { object: key });
   const marshallKey = marshall(key);
 

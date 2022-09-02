@@ -51,8 +51,8 @@ Não consultes dicionários. Casmurro não está aqui no sentido que eles lhe d�
 ```json
 {
   "account": 102456,
-  "type": "C",
-  "value": 10.56
+  "amount": 10.56,
+  "description": "qualquer coisa"
 }
 ```
 <hr />

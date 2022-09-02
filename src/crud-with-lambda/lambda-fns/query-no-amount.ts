@@ -34,7 +34,7 @@ export const handler = async(event: APIGatewayEvent, context: Context): Promise<
     TableName: process.env.TABLE_NAME,
     KeyConditionExpression: 'pk = :pk and sk = :sk',
     ExpressionAttributeValues: marshallKey,
-    // ProjectionExpression: 'pk, sk, amount'
+    ProjectionExpression: 'pk, sk, description'
   };
   logger.info('input', { object: input });
   try {
